@@ -65,7 +65,7 @@ class _VPrinter:
 
 
 class DiffRecorder:
-    def __init__(self, verbosity: int) -> None:
+    def __init__(self, verbosity: int, check: bool = False) -> None:
         self._printer = _VPrinter(verbosity)
         # in py3.6+ the dict builtin maintains order, but being explicit is
         # slightly safer since we're being explicit about the fact that we want
@@ -74,6 +74,7 @@ class DiffRecorder:
             collections.OrderedDict()
         )
         self._file_encoding = _determine_encoding()
+        self._check = check
 
     def add(self, fname: str, original: str, updated: str, lineno: int) -> None:
         if fname not in self.by_fname:
@@ -113,8 +114,9 @@ class DiffRecorder:
 
         if self.hasdiff(filename):
             self._printer.out("fail", verbosity=2)
-            with open(filename, "w", encoding=self._file_encoding) as f:
-                f.write("".join(newcontent))
+            if not self._check:
+                with open(filename, "w", encoding=self._file_encoding) as f:
+                    f.write("".join(newcontent))
             return True
         self._printer.out("ok", verbosity=2)
         return False
@@ -126,7 +128,12 @@ class DiffRecorder:
         *,
         charwidth: t.Callable[[str], int] | None = None,
     ) -> None:
-        self._printer.out("Changes were made in these files:")
+        if self._check:
+            self._printer.out(
+                "Changes would be made in these files but '--check' was used:"
+            )
+        else:
+            self._printer.out("Changes were made in these files:")
         for filename, changeset in self.items():
             if ansi_colors:
                 filename_c = colorize(filename, color="yellow")

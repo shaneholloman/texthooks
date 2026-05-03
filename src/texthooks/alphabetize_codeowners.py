@@ -34,7 +34,7 @@ def main(*, argv: list[str] | None = None) -> int:
 
     line_fixer = make_line_fixer(args.dialect)
 
-    recorder = DiffRecorder(args.verbosity)
+    recorder = DiffRecorder(args.verbosity, check=args.check)
     missing_file = False
     for fn in filenames:
         try:

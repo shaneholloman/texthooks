@@ -103,6 +103,10 @@ def _standard_cli_parser(
         choices=("off", "on"),
         help="Enable or disable ANSI colors. Defaults to 'on'",
     )
+    if fixer:
+        _maybe_add_arg(
+            "--check", action="store_true", help="Check but do not modify files."
+        )
     return parser
 
 

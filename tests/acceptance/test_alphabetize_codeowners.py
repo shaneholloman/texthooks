@@ -146,3 +146,13 @@ def test_space_removal_will_align_in_show_changes_output(runner):
             + /foo/bar.txt @alice @bob
         """)
     assert result.file_data == "/foo/bar.txt @alice @bob\n"
+
+
+def test_alphabetize_codeowners_in_check_mode(runner):
+    result = runner(
+        alphabetize_codeowners_main,
+        "/foo/bar.txt @Bob @alice @charlie",
+        add_args=["--check"],
+    )
+    assert result.exit_code == 1
+    assert result.file_data == "/foo/bar.txt @Bob @alice @charlie"
