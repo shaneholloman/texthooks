@@ -99,10 +99,11 @@ def do_all_replacements(
     single_quote_codepoints: t.Sequence[str],
     double_quote_codepoints: t.Sequence[str],
     verbosity: int,
+    check: bool,
 ) -> DiffRecorder:
     """Do replacements over a set of filenames, and return a list of filenames
     where changes were made."""
-    recorder = DiffRecorder(verbosity)
+    recorder = DiffRecorder(verbosity, check=check)
     line_fixer = gen_line_fixer(single_quote_codepoints, double_quote_codepoints)
     for fn in all_filenames(files):
         recorder.run_line_fixer(line_fixer, fn)
@@ -175,6 +176,7 @@ def main(*, argv: list[str] | None = None) -> int:
         args.single_quote_codepoints,
         args.double_quote_codepoints,
         args.verbosity,
+        check=args.check,
     )
     if changes:
         changes.print_changes(args.show_changes, args.color)

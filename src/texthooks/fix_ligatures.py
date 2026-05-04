@@ -44,10 +44,12 @@ def replace_ligatures_str(s: str) -> str:
     return REPLACEMENT_PATTERN.sub(_re_subfunc, s)
 
 
-def do_all_replacements(files: t.Iterable[str] | None, verbosity: int) -> DiffRecorder:
+def do_all_replacements(
+    files: t.Iterable[str] | None, verbosity: int, check: bool
+) -> DiffRecorder:
     """Do replacements over a set of filenames, and return a list of filenames
     where changes were made."""
-    recorder = DiffRecorder(verbosity)
+    recorder = DiffRecorder(verbosity, check=check)
 
     for fn in all_filenames(files):
         recorder.run_line_fixer(replace_ligatures_str, fn)
@@ -60,7 +62,9 @@ def parse_args(argv: list[str] | None) -> t.Any:
 
 def main(*, argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    changes = do_all_replacements(all_filenames(args.files), args.verbosity)
+    changes = do_all_replacements(
+        all_filenames(args.files), args.verbosity, check=args.check
+    )
     if changes:
         changes.print_changes(args.show_changes, args.color, charwidth=charwidth)
         return 1

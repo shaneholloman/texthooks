@@ -220,6 +220,8 @@ following sample config:
 
 - Support Python 3.14
 - Remove support for Python 3.8 and 3.9
+- Add a `--check` flag to all fixers, which checks for changes but does not
+  apply them.
 
 ### 0.7.1
 

@@ -58,11 +58,14 @@ def gen_line_fixer(separator_regex: re.Pattern) -> t.Callable[[str], str]:
 
 
 def do_all_replacements(
-    files: t.Iterable[str] | None, separator_regex: re.Pattern, verbosity: int
+    files: t.Iterable[str] | None,
+    separator_regex: re.Pattern,
+    verbosity: int,
+    check: bool,
 ) -> DiffRecorder:
     """Do replacements over a set of filenames, and return a list of filenames
     where changes were made."""
-    recorder = DiffRecorder(verbosity)
+    recorder = DiffRecorder(verbosity, check=check)
     line_fixer = gen_line_fixer(separator_regex)
     for fn in all_filenames(files):
         recorder.run_line_fixer(line_fixer, fn)
@@ -106,7 +109,10 @@ def main(*, argv: list[str] | None = None) -> int:
     separator_regex = codepoints2regex(args.separator_codepoints)
 
     changes = do_all_replacements(
-        all_filenames(args.files), separator_regex, verbosity=args.verbosity
+        all_filenames(args.files),
+        separator_regex,
+        verbosity=args.verbosity,
+        check=args.check,
     )
     if changes:
         changes.print_changes(args.show_changes, args.color)
