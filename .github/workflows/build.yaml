@@ -7,7 +7,7 @@ jobs:
   mypy:
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -17,7 +17,7 @@ jobs:
   check-pacakge-build:
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -38,7 +38,7 @@ jobs:
     name: "Test py${{ matrix.py }} (${{ matrix.os.name }})"
     runs-on: ${{ matrix.os.runner }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py }}
