@@ -1,3 +1,4 @@
+import contextlib
 import os
 import pathlib
 import textwrap
@@ -27,6 +28,25 @@ exit_code: {self.exit_code}
 </CLIResult>
 """
 
+    @contextlib.contextmanager
+    def trap_system_exit(self) -> t.Iterator[None]:
+        try:
+            yield
+        except SystemExit as e:
+            self.exit_code = e.code
+        else:
+            self.exit_code = 0
+
+
+@contextlib.contextmanager
+def _pushd(dir: pathlib.Path) -> t.Iterator[None]:
+    old_cwd = pathlib.Path.cwd()
+    try:
+        os.chdir(dir)
+        yield
+    finally:
+        os.chdir(old_cwd)
+
 
 @pytest.fixture
 def runner(tmp_path, capsys):
@@ -46,13 +66,9 @@ def runner(tmp_path, capsys):
         newfile = tmp_path / filename
         newfile.write_text(data, encoding=encoding)
 
-        old_cwd = pathlib.Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            result = _CLIResult(filename)
-            result.exit_code = fixer_main(argv=[filename] + add_args)
-        finally:
-            os.chdir(old_cwd)
+        result = _CLIResult(filename)
+        with _pushd(tmp_path), result.trap_system_exit():
+            fixer_main(argv=[filename] + add_args)
 
         with open(newfile, encoding=encoding) as fp:
             result.file_data = fp.read()

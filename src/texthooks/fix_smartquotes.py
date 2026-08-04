@@ -22,17 +22,10 @@ failed. This makes the script suitable as a pre-commit fixer.
 """
 
 import argparse
-import re
 import sys
 import typing as t
 
-from ._common import all_filenames, codepoints2chars, parse_cli_args
-from ._recorders import DiffRecorder
-
-
-def codepoints2regex(codepoints: t.Sequence[str]) -> re.Pattern:
-    return re.compile("(" + "|".join(codepoints2chars(codepoints)) + ")")
-
+from ._fixer_core import CodepointFixer
 
 # lists of unicode codepoints, commented with their unicode names
 DEFAULT_DOUBLE_QUOTE_CODEPOINTS = (
@@ -63,126 +56,64 @@ DEFAULT_SINGLE_QUOTE_CODEPOINTS = (
 )
 
 
-def gen_line_fixer(
-    single_quote_codepoints: t.Sequence[str], double_quote_codepoints: t.Sequence[str]
-) -> t.Callable[[str], str]:
-    single_quote_regex = (
-        codepoints2regex(single_quote_codepoints) if single_quote_codepoints else None
-    )
-    double_quote_regex = (
-        codepoints2regex(double_quote_codepoints) if double_quote_codepoints else None
-    )
-
-    if single_quote_regex and double_quote_regex:
-
-        def line_fixer(line: str) -> str:
-            return single_quote_regex.sub("'", double_quote_regex.sub('"', line))
-
-    elif single_quote_regex:
-
-        def line_fixer(line: str) -> str:
-            return single_quote_regex.sub("'", line)
-
-    elif double_quote_regex:
-
-        def line_fixer(line: str) -> str:
-            return double_quote_regex.sub("'", line)
-
-    else:
-        raise NotImplementedError("Both replacement modes were disabled.")
-
-    return line_fixer
-
-
-def do_all_replacements(
-    files: t.Iterable[str] | None,
-    single_quote_codepoints: t.Sequence[str],
-    double_quote_codepoints: t.Sequence[str],
-    verbosity: int,
-    check: bool,
-) -> DiffRecorder:
-    """Do replacements over a set of filenames, and return a list of filenames
-    where changes were made."""
-    recorder = DiffRecorder(verbosity, check=check)
-    line_fixer = gen_line_fixer(single_quote_codepoints, double_quote_codepoints)
-    for fn in all_filenames(files):
-        recorder.run_line_fixer(line_fixer, fn)
-    return recorder
-
-
-def modify_cli_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--double-quote-codepoints",
-        type=str,
-        help=(
-            "A comma-delimited list of unicode codepoints for characters "
-            "which should be treated as double quotes. "
-            f"default: {','.join(DEFAULT_DOUBLE_QUOTE_CODEPOINTS)}"
-        ),
-    )
-    parser.add_argument(
-        "--single-quote-codepoints",
-        type=str,
-        help=(
-            "A comma-delimited list of unicode codepoints for characters "
-            "which should be treated as single quotes. "
-            f"default: {','.join(DEFAULT_SINGLE_QUOTE_CODEPOINTS)}"
-        ),
-    )
-
-
-def postprocess_cli_args(args: t.Any) -> t.Any:
-    # convert comma delimited lists manually
-
-    if args.double_quote_codepoints is None:
-        args.double_quote_codepoints = DEFAULT_DOUBLE_QUOTE_CODEPOINTS
-    elif args.double_quote_codepoints == "":
-        args.double_quote_codepoints = []
-    else:
-        args.double_quote_codepoints = args.double_quote_codepoints.split(",")
-
-    if args.single_quote_codepoints is None:
-        args.single_quote_codepoints = DEFAULT_SINGLE_QUOTE_CODEPOINTS
-    elif args.single_quote_codepoints == "":
-        args.single_quote_codepoints = []
-    else:
-        args.single_quote_codepoints = args.single_quote_codepoints.split(",")
-
-    if not (bool(args.double_quote_codepoints) or bool(args.single_quote_codepoints)):
-        print(
-            "fix-smartquotes cannot run when both sets of codepoints are empty.",
-            file=sys.stderr,
+class QuoteFixer(CodepointFixer):
+    def modify_cli_parser(self, parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "--double-quote-codepoints",
+            type=str,
+            help=(
+                "A comma-delimited list of unicode codepoints for characters "
+                "which should be treated as double quotes. "
+                f"default: {','.join(DEFAULT_DOUBLE_QUOTE_CODEPOINTS)}"
+            ),
         )
-        raise SystemExit(2)
+        parser.add_argument(
+            "--single-quote-codepoints",
+            type=str,
+            help=(
+                "A comma-delimited list of unicode codepoints for characters "
+                "which should be treated as single quotes. "
+                f"default: {','.join(DEFAULT_SINGLE_QUOTE_CODEPOINTS)}"
+            ),
+        )
 
-    return args
+    def postprocess_cli_args(self, args: argparse.Namespace) -> argparse.Namespace:
+        # convert comma delimited lists manually
+        if args.double_quote_codepoints is None:
+            args.double_quote_codepoints = DEFAULT_DOUBLE_QUOTE_CODEPOINTS
+        elif args.double_quote_codepoints == "":
+            args.double_quote_codepoints = []
+        else:
+            args.double_quote_codepoints = args.double_quote_codepoints.split(",")
+
+        if args.single_quote_codepoints is None:
+            args.single_quote_codepoints = DEFAULT_SINGLE_QUOTE_CODEPOINTS
+        elif args.single_quote_codepoints == "":
+            args.single_quote_codepoints = []
+        else:
+            args.single_quote_codepoints = args.single_quote_codepoints.split(",")
+
+        if not (
+            bool(args.double_quote_codepoints) or bool(args.single_quote_codepoints)
+        ):
+            print(
+                "fix-smartquotes cannot run when both sets of codepoints are empty.",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
+
+        self.codepoint_map.update(
+            dict.fromkeys(args.double_quote_codepoints, '"')
+            | dict.fromkeys(args.single_quote_codepoints, "'")
+        )
+
+        return args
 
 
-def parse_args(argv: list[str] | None) -> t.Any:
-    return parse_cli_args(
-        __doc__,
-        fixer=True,
-        argv=argv,
-        modify_parser=modify_cli_parser,
-        postprocess=postprocess_cli_args,
-    )
-
-
-def main(*, argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-
-    changes = do_all_replacements(
-        all_filenames(args.files),
-        args.single_quote_codepoints,
-        args.double_quote_codepoints,
-        args.verbosity,
-        check=args.check,
-    )
-    if changes:
-        changes.print_changes(args.show_changes, args.color)
-        return 1
-    return 0
+def main(*, argv: list[str] | None = None) -> t.NoReturn:
+    fixer = QuoteFixer(__doc__)
+    raise SystemExit(fixer.main(argv=argv))
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

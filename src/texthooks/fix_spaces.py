@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 A fixer script which crawls text files and replaces various unicode space
 separators with the space character.
@@ -15,17 +14,9 @@ failed. This makes the script suitable as a pre-commit fixer.
 """
 
 import argparse
-import re
-import sys
 import typing as t
 
-from ._common import all_filenames, codepoints2chars, parse_cli_args
-from ._recorders import DiffRecorder
-
-
-def codepoints2regex(codepoints: t.Sequence[str]) -> re.Pattern:
-    return re.compile("(" + "|".join(codepoints2chars(codepoints)) + ")")
-
+from ._fixer_core import CodepointFixer
 
 # lists of unicode codepoints, commented with their unicode names
 DEFAULT_SEPARATOR_CODEPOINTS = (
@@ -50,75 +41,33 @@ DEFAULT_SEPARATOR_CODEPOINTS = (
 )
 
 
-def gen_line_fixer(separator_regex: re.Pattern) -> t.Callable[[str], str]:
-    def line_fixer(line: str) -> str:
-        return separator_regex.sub(" ", line)
+class SpaceFixer(CodepointFixer):
+    def modify_cli_parser(self, parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "--separator-codepoints",
+            type=str,
+            help=(
+                "A comma-delimited list of unicode codepoints for characters "
+                "which should be treated as single quotes. "
+                f"default: {','.join(DEFAULT_SEPARATOR_CODEPOINTS)}"
+            ),
+        )
 
-    return line_fixer
+    def postprocess_cli_args(self, args: argparse.Namespace) -> argparse.Namespace:
+        # convert comma delimited lists manually
+        if args.separator_codepoints:
+            args.separator_codepoints = args.separator_codepoints.split(",")
+        else:
+            args.separator_codepoints = DEFAULT_SEPARATOR_CODEPOINTS
 
-
-def do_all_replacements(
-    files: t.Iterable[str] | None,
-    separator_regex: re.Pattern,
-    verbosity: int,
-    check: bool,
-) -> DiffRecorder:
-    """Do replacements over a set of filenames, and return a list of filenames
-    where changes were made."""
-    recorder = DiffRecorder(verbosity, check=check)
-    line_fixer = gen_line_fixer(separator_regex)
-    for fn in all_filenames(files):
-        recorder.run_line_fixer(line_fixer, fn)
-    return recorder
-
-
-def modify_cli_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--separator-codepoints",
-        type=str,
-        help=(
-            "A comma-delimited list of unicode codepoints for characters "
-            "which should be treated as single quotes. "
-            f"default: {','.join(DEFAULT_SEPARATOR_CODEPOINTS)}"
-        ),
-    )
+        self.codepoint_map.update(dict.fromkeys(args.separator_codepoints, " "))
+        return args
 
 
-def postprocess_cli_args(args: t.Any) -> t.Any:
-    # convert comma delimited lists manually
-    if args.separator_codepoints:
-        args.separator_codepoints = args.separator_codepoints.split(",")
-    else:
-        args.separator_codepoints = DEFAULT_SEPARATOR_CODEPOINTS
-    return args
-
-
-def parse_args(argv: list[str] | None) -> t.Any:
-    return parse_cli_args(
-        __doc__,
-        fixer=True,
-        argv=argv,
-        modify_parser=modify_cli_parser,
-        postprocess=postprocess_cli_args,
-    )
-
-
-def main(*, argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-
-    separator_regex = codepoints2regex(args.separator_codepoints)
-
-    changes = do_all_replacements(
-        all_filenames(args.files),
-        separator_regex,
-        verbosity=args.verbosity,
-        check=args.check,
-    )
-    if changes:
-        changes.print_changes(args.show_changes, args.color)
-        return 1
-    return 0
+def main(*, argv: list[str] | None = None) -> t.NoReturn:
+    fixer = SpaceFixer(__doc__)
+    raise SystemExit(fixer.main(argv=argv))
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

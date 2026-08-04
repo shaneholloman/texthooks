@@ -70,7 +70,11 @@ def parse_args(argv: list[str] | None) -> t.Any:
     )
 
 
-def main(*, argv: list[str] | None = None) -> int:
+def main(*, argv: list[str] | None = None) -> t.NoReturn:
+    raise SystemExit(_main(argv=argv))
+
+
+def _main(*, argv: list[str] | None) -> int:
     args = parse_args(argv)
     changes = do_all_replacements(all_filenames(args.files), args.macro, args.verbosity)
     if changes:
