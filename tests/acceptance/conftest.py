@@ -15,7 +15,7 @@ class _CLIResult:
         self.stdout = ""
         self.stderr = ""
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return f"""\
 <CLIResult>
 exit_code: {self.exit_code}
@@ -34,8 +34,6 @@ exit_code: {self.exit_code}
             yield
         except SystemExit as e:
             self.exit_code = e.code
-        else:
-            self.exit_code = 0
 
 
 @contextlib.contextmanager

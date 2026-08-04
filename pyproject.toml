@@ -45,7 +45,6 @@ macro-expand = "texthooks.macro_expand:main"
 coverage = ["coverage[toml]"]
 test = [
     "pytest<10",
-    "pytest-cov<8",
     "pytest-xdist<4",
     { include-group = "coverage" },
 ]
@@ -72,6 +71,9 @@ disallow_untyped_defs = true
 
 [tool.coverage.run]
 parallel = true
+
+[tool.coverage.paths]
+source = ["src/", "*/site-packages/"]
 
 [tool.coverage.report]
 show_missing = true
