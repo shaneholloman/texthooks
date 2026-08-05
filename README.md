@@ -218,7 +218,7 @@ following sample config:
 
 <!-- bumpversion-changelog -->
 
-- Support Python 3.14
+- Support Python 3.14 and 3.15
 - Remove support for Python 3.8 and 3.9
 - Add a `--check` flag to all fixers, which checks for changes but does not
   apply them.

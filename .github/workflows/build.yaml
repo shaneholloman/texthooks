@@ -34,7 +34,7 @@ jobs:
             runner: macos-latest
           - name: Linux
             runner: ubuntu-latest
-        py: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        py: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
     name: "Test py${{ matrix.py }} (${{ matrix.os.name }})"
     runs-on: ${{ matrix.os.runner }}
     steps:
@@ -42,5 +42,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.py }}
+          allow-prereleases: true
       - run: python -m pip install tox tox-uv
       - run: python -m tox -e py
