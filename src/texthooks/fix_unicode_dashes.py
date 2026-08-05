@@ -66,34 +66,18 @@ class DashFixer(CodepointFixer):
         )
 
     def postprocess_cli_args(self, args: t.Any) -> t.Any:
-        # convert comma delimited lists manually
-        if args.single_hyphen_codepoints is None:
-            args.single_hyphen_codepoints = DEFAULT_SINGLE_HYPHEN_CODEPOINTS
-        elif args.single_hyphen_codepoints == "":
-            args.single_hyphen_codepoints = []
-        else:
-            args.single_hyphen_codepoints = args.hyphen_codepoints.split(",")
-
-        if args.double_hyphen_codepoints is None:
-            args.double_hyphen_codepoints = DEFAULT_DOUBLE_HYPHEN_CODEPOINTS
-        elif args.double_hyphen_codepoints == "":
-            args.double_hyphen_codepoints = []
-        else:
-            args.double_hyphen_codepoints = args.double_hyphen_codepoints.split(",")
-
-        if not (
-            bool(args.single_hyphen_codepoints) or bool(args.double_hyphen_codepoints)
-        ):
+        single_hyphen_is_set = self.map_comma_delimited_arg(
+            args.single_hyphen_codepoints, DEFAULT_SINGLE_HYPHEN_CODEPOINTS, "-"
+        )
+        double_hyphen_is_set = self.map_comma_delimited_arg(
+            args.double_hyphen_codepoints, DEFAULT_DOUBLE_HYPHEN_CODEPOINTS, "--"
+        )
+        if not (single_hyphen_is_set or double_hyphen_is_set):
             print(
                 "fix-unicode-dashes cannot run when both sets of codepoints are empty.",
                 file=sys.stderr,
             )
             raise SystemExit(2)
-
-        self.codepoint_map.update(
-            dict.fromkeys(args.single_hyphen_codepoints, "-")
-            | dict.fromkeys(args.double_hyphen_codepoints, "--")
-        )
 
         return args
 

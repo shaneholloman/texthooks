@@ -14,6 +14,7 @@ failed. This makes the script suitable as a pre-commit fixer.
 """
 
 import argparse
+import sys
 import typing as t
 
 from ._fixer_core import CodepointFixer
@@ -54,13 +55,14 @@ class SpaceFixer(CodepointFixer):
         )
 
     def postprocess_cli_args(self, args: argparse.Namespace) -> argparse.Namespace:
-        # convert comma delimited lists manually
-        if args.separator_codepoints:
-            args.separator_codepoints = args.separator_codepoints.split(",")
-        else:
-            args.separator_codepoints = DEFAULT_SEPARATOR_CODEPOINTS
-
-        self.codepoint_map.update(dict.fromkeys(args.separator_codepoints, " "))
+        if not self.map_comma_delimited_arg(
+            args.separator_codepoints, DEFAULT_SEPARATOR_CODEPOINTS, " "
+        ):
+            print(
+                "fix-spaces cannot run when the set of codepoints is empty.",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
         return args
 
 

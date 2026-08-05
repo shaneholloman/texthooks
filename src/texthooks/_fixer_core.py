@@ -45,6 +45,26 @@ class CodepointFixer:
         """Overrideable hook."""
         return args
 
+    def map_comma_delimited_arg(
+        self, arg_value: str | None, default: t.Iterable[str], value: str
+    ) -> bool:
+        """
+        Add a comma-delimited arg value to the codepoint map, falling back to a default
+        expressed as an iterable.
+
+        Returns False if the value was cleared (empty), True otherwise.
+        """
+        if arg_value == "":
+            return False
+
+        if arg_value is None:
+            source = default
+        else:
+            source = arg_value.split(",")
+
+        self.codepoint_map.update(dict.fromkeys(source, value))
+        return True
+
     def _do_replacements(self, args: argparse.Namespace) -> DiffRecorder:
         recorder = DiffRecorder(args.verbosity, check=args.check)
         for fn in all_filenames(args.files):

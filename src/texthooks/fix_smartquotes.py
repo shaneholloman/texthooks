@@ -78,34 +78,18 @@ class QuoteFixer(CodepointFixer):
         )
 
     def postprocess_cli_args(self, args: argparse.Namespace) -> argparse.Namespace:
-        # convert comma delimited lists manually
-        if args.double_quote_codepoints is None:
-            args.double_quote_codepoints = DEFAULT_DOUBLE_QUOTE_CODEPOINTS
-        elif args.double_quote_codepoints == "":
-            args.double_quote_codepoints = []
-        else:
-            args.double_quote_codepoints = args.double_quote_codepoints.split(",")
-
-        if args.single_quote_codepoints is None:
-            args.single_quote_codepoints = DEFAULT_SINGLE_QUOTE_CODEPOINTS
-        elif args.single_quote_codepoints == "":
-            args.single_quote_codepoints = []
-        else:
-            args.single_quote_codepoints = args.single_quote_codepoints.split(",")
-
-        if not (
-            bool(args.double_quote_codepoints) or bool(args.single_quote_codepoints)
-        ):
+        double_quote_is_set = self.map_comma_delimited_arg(
+            args.double_quote_codepoints, DEFAULT_DOUBLE_QUOTE_CODEPOINTS, '"'
+        )
+        single_quote_is_set = self.map_comma_delimited_arg(
+            args.single_quote_codepoints, DEFAULT_SINGLE_QUOTE_CODEPOINTS, "'"
+        )
+        if not (double_quote_is_set or single_quote_is_set):
             print(
                 "fix-smartquotes cannot run when both sets of codepoints are empty.",
                 file=sys.stderr,
             )
             raise SystemExit(2)
-
-        self.codepoint_map.update(
-            dict.fromkeys(args.double_quote_codepoints, '"')
-            | dict.fromkeys(args.single_quote_codepoints, "'")
-        )
 
         return args
 
