@@ -14,17 +14,10 @@ marked as failed. This makes the script suitable as a pre-commit fixer.
 """
 
 import argparse
-import re
 import sys
 import typing as t
 
-from ._common import all_filenames, codepoints2chars, parse_cli_args
-from ._recorders import DiffRecorder
-
-
-def codepoints2regex(codepoints: t.Sequence[str]) -> re.Pattern:
-    return re.compile("(" + "|".join(codepoints2chars(codepoints)) + ")")
-
+from ._fixer_core import CodepointFixer
 
 # Unicode codepoints for dash characters, commented with their unicode names
 DEFAULT_SINGLE_HYPHEN_CODEPOINTS = (
@@ -51,124 +44,44 @@ DEFAULT_DOUBLE_HYPHEN_CODEPOINTS = (
 )
 
 
-def gen_line_fixer(
-    single_hyphen_codepoints: t.Sequence[str], double_hyphen_codepoints: t.Sequence[str]
-) -> t.Callable[[str], str]:
-    single_hyphen_regex = (
-        codepoints2regex(single_hyphen_codepoints) if single_hyphen_codepoints else None
-    )
-    double_hyphen_regex = (
-        codepoints2regex(double_hyphen_codepoints) if double_hyphen_codepoints else None
-    )
-
-    if single_hyphen_regex and double_hyphen_regex:
-
-        def line_fixer(line: str) -> str:
-            return single_hyphen_regex.sub("-", double_hyphen_regex.sub("--", line))
-
-    elif single_hyphen_regex:
-
-        def line_fixer(line: str) -> str:
-            return single_hyphen_regex.sub("-", line)
-
-    elif double_hyphen_regex:
-
-        def line_fixer(line: str) -> str:
-            return double_hyphen_regex.sub("--", line)
-
-    else:
-        raise NotImplementedError("Both replacement modes were disabled.")
-
-    return line_fixer
-
-
-def do_all_replacements(
-    files: t.Iterable[str] | None,
-    single_hyphen_codepoints: t.Sequence[str],
-    double_hyphen_codepoints: t.Sequence[str],
-    verbosity: int,
-) -> DiffRecorder:
-    """Do replacements over a set of filenames, and return a list of filenames
-    where changes were made."""
-    recorder = DiffRecorder(verbosity)
-    line_fixer = gen_line_fixer(single_hyphen_codepoints, double_hyphen_codepoints)
-    for fn in all_filenames(files):
-        recorder.run_line_fixer(line_fixer, fn)
-    return recorder
-
-
-def modify_cli_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--single-hyphen-codepoints",
-        type=str,
-        help=(
-            "A comma-delimited list of unicode codepoints for characters "
-            "which should be replaced with single hyphens. "
-            f"default: {','.join(DEFAULT_SINGLE_HYPHEN_CODEPOINTS)}"
-        ),
-    )
-    parser.add_argument(
-        "--double-hyphen-codepoints",
-        type=str,
-        help=(
-            "A comma-delimited list of unicode codepoints for characters "
-            "which should be replaced with double hyphens. "
-            f"default: {','.join(DEFAULT_DOUBLE_HYPHEN_CODEPOINTS)}"
-        ),
-    )
-
-
-def postprocess_cli_args(args: t.Any) -> t.Any:
-    # convert comma delimited lists manually
-
-    if args.single_hyphen_codepoints is None:
-        args.single_hyphen_codepoints = DEFAULT_SINGLE_HYPHEN_CODEPOINTS
-    elif args.single_hyphen_codepoints == "":
-        args.single_hyphen_codepoints = []
-    else:
-        args.single_hyphen_codepoints = args.hyphen_codepoints.split(",")
-
-    if args.double_hyphen_codepoints is None:
-        args.double_hyphen_codepoints = DEFAULT_DOUBLE_HYPHEN_CODEPOINTS
-    elif args.double_hyphen_codepoints == "":
-        args.double_hyphen_codepoints = []
-    else:
-        args.double_hyphen_codepoints = args.double_hyphen_codepoints.split(",")
-
-    if not (bool(args.single_hyphen_codepoints) or bool(args.double_hyphen_codepoints)):
-        print(
-            "fix-unicode-dashes cannot run when both sets of codepoints are empty.",
-            file=sys.stderr,
+class DashFixer(CodepointFixer):
+    def modify_cli_parser(self, parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "--single-hyphen-codepoints",
+            type=str,
+            help=(
+                "A comma-delimited list of unicode codepoints for characters "
+                "which should be replaced with single hyphens. "
+                f"default: {','.join(DEFAULT_SINGLE_HYPHEN_CODEPOINTS)}"
+            ),
         )
-        raise SystemExit(2)
+        parser.add_argument(
+            "--double-hyphen-codepoints",
+            type=str,
+            help=(
+                "A comma-delimited list of unicode codepoints for characters "
+                "which should be replaced with double hyphens. "
+                f"default: {','.join(DEFAULT_DOUBLE_HYPHEN_CODEPOINTS)}"
+            ),
+        )
 
-    return args
+    def postprocess_cli_args(self, args: t.Any) -> t.Any:
+        single_hyphen_is_set = self.map_comma_delimited_arg(
+            args.single_hyphen_codepoints, DEFAULT_SINGLE_HYPHEN_CODEPOINTS, "-"
+        )
+        double_hyphen_is_set = self.map_comma_delimited_arg(
+            args.double_hyphen_codepoints, DEFAULT_DOUBLE_HYPHEN_CODEPOINTS, "--"
+        )
+        if not (single_hyphen_is_set or double_hyphen_is_set):
+            print(
+                "fix-unicode-dashes cannot run when both sets of codepoints are empty.",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
 
-
-def parse_args(argv: list[str] | None) -> t.Any:
-    return parse_cli_args(
-        __doc__,
-        fixer=True,
-        argv=argv,
-        modify_parser=modify_cli_parser,
-        postprocess=postprocess_cli_args,
-    )
-
-
-def main(*, argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-
-    changes = do_all_replacements(
-        all_filenames(args.files),
-        args.single_hyphen_codepoints,
-        args.double_hyphen_codepoints,
-        args.verbosity,
-    )
-    if changes:
-        changes.print_changes(args.show_changes, args.color)
-        return 1
-    return 0
+        return args
 
 
+main = DashFixer.script_main(__doc__)
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

@@ -10,7 +10,6 @@ Use '--dialect=gitlab' in order to support GitLab's extended CODEOWNERS syntax.
 
 import argparse
 import re
-import sys
 import typing as t
 
 from ._common import parse_cli_args
@@ -20,7 +19,11 @@ GITLAB_SECTION_TITLE_PATTERN = re.compile(r"\^?\[[^\]]+\]")
 GITLAB_SECTION_N_APPROVALS_PATTERN = re.compile(r"\[\d+\]")
 
 
-def main(*, argv: list[str] | None = None) -> int:
+def main(*, argv: list[str] | None = None) -> t.NoReturn:
+    raise SystemExit(_main(argv=argv))
+
+
+def _main(*, argv: list[str] | None) -> int:
     args = parse_cli_args(
         __doc__,
         fixer=True,
@@ -114,4 +117,4 @@ def _sort_owners_line(line: str) -> str:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

@@ -7,7 +7,6 @@ This checker only examines the BiDi controls, no other format control characters
 other sources
 """
 
-import sys
 import typing as t
 
 from ._common import all_filenames, codepoint2char, parse_cli_args
@@ -49,7 +48,11 @@ def parse_args(argv: list[str] | None) -> t.Any:
     return parse_cli_args(__doc__, fixer=False, argv=argv)
 
 
-def main(*, argv: list[str] | None = None) -> int:
+def main(*, argv: list[str] | None = None) -> t.NoReturn:
+    raise SystemExit(_main(argv=argv))
+
+
+def _main(*, argv: list[str] | None) -> int:
     args = parse_args(argv)
     findings = do_all_checks(all_filenames(args.files), args.verbosity)
     if findings:
@@ -59,4 +62,4 @@ def main(*, argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

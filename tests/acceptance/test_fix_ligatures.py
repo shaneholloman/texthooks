@@ -23,7 +23,7 @@ def test_fix_ligature_fi_stylistic_ligature(runner):
         conﬁg
         """,
     )
-    assert result.exit_code == 1
+    assert result.exit_code == 1, str(result)
     assert result.file_data == d("""
         config
         """)
