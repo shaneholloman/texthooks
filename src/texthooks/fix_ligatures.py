@@ -9,8 +9,6 @@ presentation (e.g. by LaTeX) but was originally input as ASCII-friendly latin
 text.
 """
 
-import typing as t
-
 from ._fixer_core import CodepointFixer
 
 # map unicode codepoints to non-ligature versions of those chars
@@ -22,13 +20,6 @@ CODEPOINT_MAP = {
     "FB04": "ffl",
 }
 
-
-LIGATURE_FIXER = CodepointFixer(__doc__, CODEPOINT_MAP)
-
-
-def main(*, argv: list[str] | None = None) -> t.NoReturn:
-    raise SystemExit(LIGATURE_FIXER.main(argv=argv))
-
-
+main = CodepointFixer.script_main(__doc__, CODEPOINT_MAP)
 if __name__ == "__main__":
     main()

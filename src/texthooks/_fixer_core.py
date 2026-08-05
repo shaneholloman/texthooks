@@ -7,6 +7,10 @@ from ._common import all_filenames, codepoint2char, parse_cli_args
 from ._recorders import DiffRecorder
 
 
+class _ScriptMain(t.Protocol):
+    def __call__(self, *, argv: list[str] | None = None) -> t.NoReturn: ...
+
+
 class CodepointFixer:
     def __init__(
         self,
@@ -15,6 +19,24 @@ class CodepointFixer:
     ) -> None:
         self.docstring = docstring
         self.codepoint_map = CodepointMap(seed_codepoint_map)
+
+    @classmethod
+    def script_main(
+        cls,
+        docstring: str,
+        seed_codepoint_map: t.Mapping[str, str] | t.Iterable[tuple[str, str]] = (),
+    ) -> _ScriptMain:
+        """
+        This wraps `main()` in a helper which builds a fixer.
+        Because fixers are stateful, this usage ensures that tests and in-process usage
+        always see clean fixers when they invoke `main()`
+        """
+
+        def main(*, argv: list[str] | None = None) -> t.NoReturn:
+            fixer = cls(docstring, seed_codepoint_map)
+            raise SystemExit(fixer.main(argv=argv))
+
+        return main
 
     def main(self, *, argv: list[str] | None = None) -> int:
         args = self._parse_args(argv=argv)

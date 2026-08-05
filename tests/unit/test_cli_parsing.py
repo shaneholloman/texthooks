@@ -1,11 +1,16 @@
 import pytest
 
-from texthooks.fix_ligatures import LIGATURE_FIXER
+from texthooks._fixer_core import CodepointFixer
+from texthooks.fix_ligatures import CODEPOINT_MAP as LIGATURE_CODEPOINTS
 from texthooks.fix_smartquotes import (
     DEFAULT_DOUBLE_QUOTE_CODEPOINTS,
     DEFAULT_SINGLE_QUOTE_CODEPOINTS,
 )
 from texthooks.fix_smartquotes import QuoteFixer as _QuoteFixer
+
+
+def LigatureFixer():
+    return CodepointFixer("fake docstring", LIGATURE_CODEPOINTS)
 
 
 def QuoteFixer():
@@ -19,11 +24,11 @@ def _extra_quote_codepoints(fixer):
 
 
 def test_fix_ligatures_arg_parsing():
-    args1 = LIGATURE_FIXER._parse_args(argv=["foo", "bar"])
+    args1 = LigatureFixer()._parse_args(argv=["foo", "bar"])
     assert list(args1.files) == ["foo", "bar"]
     assert args1.show_changes is False
 
-    args2 = LIGATURE_FIXER._parse_args(argv=["foo", "--show-changes"])
+    args2 = LigatureFixer()._parse_args(argv=["foo", "--show-changes"])
     assert list(args2.files) == ["foo"]
     assert args2.show_changes is True
 
@@ -66,7 +71,7 @@ def test_fix_smartquotes_arg_parsing():
     )
 
 
-@pytest.mark.parametrize("fixer", [LIGATURE_FIXER, QuoteFixer()])
+@pytest.mark.parametrize("fixer", [LigatureFixer(), QuoteFixer()])
 def test_invalid_color_opt(fixer):
     with pytest.raises(SystemExit) as excinfo:
         fixer._parse_args(argv=["foo", "--color", "bar"])

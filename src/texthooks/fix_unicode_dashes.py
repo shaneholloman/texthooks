@@ -82,10 +82,6 @@ class DashFixer(CodepointFixer):
         return args
 
 
-def main(*, argv: list[str] | None = None) -> t.NoReturn:
-    fixer = DashFixer(__doc__)
-    raise SystemExit(fixer.main(argv=argv))
-
-
+main = DashFixer.script_main(__doc__)
 if __name__ == "__main__":
     main()

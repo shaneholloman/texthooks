@@ -15,7 +15,6 @@ failed. This makes the script suitable as a pre-commit fixer.
 
 import argparse
 import sys
-import typing as t
 
 from ._fixer_core import CodepointFixer
 
@@ -66,10 +65,6 @@ class SpaceFixer(CodepointFixer):
         return args
 
 
-def main(*, argv: list[str] | None = None) -> t.NoReturn:
-    fixer = SpaceFixer(__doc__)
-    raise SystemExit(fixer.main(argv=argv))
-
-
+main = SpaceFixer.script_main(__doc__)
 if __name__ == "__main__":
     main()
